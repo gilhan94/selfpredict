@@ -7,7 +7,7 @@ Futures Trading profit calculator with terminal-style interface!
 Features
 - Terminal theme
 - Support for custom pairs (BTC, altcoins, meme coins, etc.)
-- Customizable leverage (10x-100x)
+- Customizable leverage (10x-100x), or whatever you want
 - Liquidation price calculation
 - Long/Short mode
 - Profit estimation in USD

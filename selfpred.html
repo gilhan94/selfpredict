@@ -146,17 +146,111 @@
       background: var(--hacker-green);
       color: black;
     }
+    
+    .credit {
+      text-align: center;
+      margin-top: 2rem;
+      position: relative;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+    
+    .credit-text {
+      position: relative;
+      display: inline-block;
+      color: var(--hacker-green);
+      text-shadow: var(--glow);
+    }
+    
+    .credit-text::before,
+    .credit-text::after {
+      content: "made with ♥ by gilhan94";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+    }
+    
+    .credit-text::before {
+      animation: glitch-effect 3s infinite;
+      clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+      transform: translate(-2px, 0);
+    }
+    
+    .credit-text::after {
+      animation: glitch-effect 2s infinite;
+      clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+      transform: translate(2px, 0);
+    }
+    
+    @keyframes glitch-effect {
+      0% { 
+        text-shadow: 2px 0 red, -2px 0 cyan; 
+        opacity: 1; 
+      }
+      10% { 
+        transform: translate(2px, 0); 
+        text-shadow: -2px 0 cyan, 2px 0 red; 
+      }
+      20%, 100% { 
+        transform: translate(0);
+        text-shadow: none;
+        opacity: 0.8; 
+      }
+    }
+    
+    /* New custom pair styles */
+    .custom-pair-container {
+      display: none;
+      margin-top: 1rem;
+    }
+    
+    .custom-pair-container.active {
+      display: block;
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
   </style>
 </head>
 <body>
+
+  <div class="credit">
+    <div class="credit-text">made with ♥ by gilhan94</div>
+  </div>
+  <div class="credit">
+    <div class="credit-text"></div>
+  </div>
+
+  <script>
+    const credit = document.querySelector('.credit-text');
+    setInterval(() => {
+      credit.style.opacity = (Math.random() * 0.2) + 0.8;
+    }, 300);
+  </script>
+  
   <div class="terminal">
-    <h1 style="text-align: center; text-shadow: var(--glow)">selfpredict ⚡</h1>
+    <h1 style="text-align: center; text-shadow: var(--glow)">selfpredict</h1>
     
     <div class="pair-selector">
       <div class="pair-option active" data-pair="BTC/USDT">₿ BTC/USDT</div>
       <div class="pair-option" data-pair="ETH/USDT">⧫ ETH/USDT</div>
       <div class="pair-option" data-pair="SOL/USDT">◎ SOL/USDT</div>
-      <div class="pair-option" data-pair="XRP/USDT">Custom Pair</div>
+      <div class="pair-option" data-pair="custom">CUSTOM</div>
+    </div>
+
+    <!-- New custom pair input field -->
+    <div class="custom-pair-container" id="custom-pair-container">
+      <div class="input-group">
+        <label>▷ CUSTOM PAIR</label>
+        <input type="text" id="customPair" placeholder="Enter pair (e.g. XRP/USDT)" />
+      </div>
     </div>
 
     <div class="input-group">
@@ -196,7 +290,7 @@
     <button onclick="calculateProfit()">CALCULATE PROFIT ⚡</button>
 
     <div class="result-terminal" id="result">
-      > Awiting command...
+      > Awaiting command...
     </div>
   </div>
 
@@ -206,6 +300,14 @@
       option.addEventListener('click', () => {
         document.querySelectorAll('.pair-option').forEach(o => o.classList.remove('active'));
         option.classList.add('active');
+        
+        // Toggle custom pair input visibility
+        const customContainer = document.getElementById('custom-pair-container');
+        if (option.dataset.pair === 'custom') {
+          customContainer.classList.add('active');
+        } else {
+          customContainer.classList.remove('active');
+        }
       });
     });
 
@@ -223,6 +325,16 @@
 
     // Main Calculation
     function calculateProfit() {
+      // Get selected pair
+      const activePairOption = document.querySelector('.pair-option.active');
+      let pair;
+      
+      if (activePairOption.dataset.pair === 'custom') {
+        pair = document.getElementById('customPair').value.trim() || 'CUSTOM';
+      } else {
+        pair = activePairOption.dataset.pair;
+      }
+
       const entry = parseFloat(document.getElementById('entryPrice').value);
       const exit = parseFloat(document.getElementById('exitPrice').value);
       const leverage = parseFloat(document.getElementById('leverage').value);
@@ -241,11 +353,12 @@
       const liquidationPrice = entry * (1 - (1/leverage) * (direction === 'long' ? 0.9 : 1.1));
 
       const resultText = `
+        [+] TRADING PAIR: ${pair}
         [+] PRICE MOVEMENT: ${(priceChange * 100).toFixed(2)}%
         [+] LEVERAGE: ${leverage}x → PNL: ${roe.toFixed(2)}%
         [+] PROFIT/LOSS: $${profit.toFixed(2)}
         [!] LIQUIDATION PRICE: $${liquidationPrice.toFixed(2)}
-        ${profit >= 0 ? '🚀 BULLISH SIGNAL DETECTED' : '⚠️ RISK OF LIQUIDATION'}
+        ${profit >= 0 ? '🚀 JEPE BOSSS' : '⚠️ YAHAHA RUNGKADDD'}
       `;
 
       showResult(resultText);
@@ -255,6 +368,10 @@
       const resultDiv = document.getElementById('result');
       resultDiv.innerHTML = text.split('\n').map(line => `> ${line}`).join('<br>');
     }
+
+    // Initialize leverage button selection
+    document.querySelector('[data-leverage="10"]').classList.add('active');
+    document.getElementById('leverage').value = '10';
   </script>
 </body>
 </html>

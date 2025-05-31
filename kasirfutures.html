@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kasir futures</title>
+  <style>
+    :root {
+      --hacker-green: #00ff00;
+      --terminal-bg: #001100;
+      --glow: 0 0 10px var(--hacker-green);
+      --danger-red: #ff0033;
+      --warning-yellow: #ffff00;
+    }
+
+    body {
+      background-color: black;
+      color: var(--hacker-green);
+      font-family: 'Consolas', monospace;
+      padding: 1rem;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px),
+        radial-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px);
+      background-size: 50px 50px;
+      background-position: 0 0, 25px 25px;
+    }
+
+    .terminal {
+      max-width: 600px;
+      margin: 0 auto;
+      border: 1px solid var(--hacker-green);
+      padding: 2rem;
+      box-shadow: var(--glow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terminal::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(0, 255, 0, 0.1),
+        transparent
+      );
+      animation: glitch 3s infinite;
+    }
+
+    @keyframes glitch {
+      0% { left: -100%; }
+      50% { left: 100%; }
+      100% { left: 100%; }
+    }
+
+    .input-group {
+      margin: 1.5rem 0;
+      position: relative;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      text-shadow: var(--glow);
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 0.8rem;
+      background: rgba(0, 20, 0, 0.8);
+      border: 1px solid var(--hacker-green);
+      color: var(--hacker-green);
+      font-family: inherit;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, select:focus, button:hover {
+      box-shadow: var(--glow);
+      outline: none;
+    }
+
+    button {
+      background: #002200;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 1rem;
+    }
+
+    .result-terminal {
+      padding: 1rem;
+      border: 1px dashed var(--hacker-green);
+      margin-top: 2rem;
+      position: relative;
+    }
+
+    .result-terminal::after {
+      content: '▶';
+      position: absolute;
+      right: 10px;
+      bottom: 5px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .pair-selector {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .pair-option {
+      padding: 0.5rem;
+      border: 1px solid var(--hacker-green);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .pair-option.active {
+      background: var(--hacker-green);
+      color: black;
+    }
+
+    .leverage-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .leverage-btn {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1px solid var(--hacker-green);
+      cursor: pointer;
+    }
+
+    .leverage-btn.active {
+      background: var(--hacker-green);
+      color: black;
+    }
+    
+    .credit {
+      text-align: center;
+      margin-top: 2rem;
+      position: relative;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+    
+    .credit-text {
+      position: relative;
+      display: inline-block;
+      color: var(--hacker-green);
+      text-shadow: var(--glow);
+    }
+    
+    .credit-text::before,
+    .credit-text::after {
+      content: "made with ♥ by john";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+    }
+    
+    .credit-text::before {
+      animation: glitch-effect 3s infinite;
+      clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+      transform: translate(-2px, 0);
+    }
+    
+    .credit-text::after {
+      animation: glitch-effect 2s infinite;
+      clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+      transform: translate(2px, 0);
+    }
+    
+    @keyframes glitch-effect {
+      0% { 
+        text-shadow: 2px 0 red, -2px 0 cyan; 
+        opacity: 1; 
+      }
+      10% { 
+        transform: translate(2px, 0); 
+        text-shadow: -2px 0 cyan, 2px 0 red; 
+      }
+      20%, 100% { 
+        transform: translate(0);
+        text-shadow: none;
+        opacity: 0.8; 
+      }
+    }
+    
+    .custom-pair-container {
+      display: none;
+      margin-top: 1rem;
+    }
+    
+    .custom-pair-container.active {
+      display: block;
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* New styles for enhancements */
+    .multi-scenario {
+      display: none;
+      border-top: 1px dashed var(--hacker-green);
+      margin-top: 1rem;
+      padding-top: 1rem;
+    }
+    
+    .multi-scenario.active {
+      display: block;
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    .scenario-inputs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .journal-container {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 1rem;
+      border: 1px dashed var(--hacker-green);
+      padding: 0.5rem;
+    }
+    
+    .journal-entry {
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+      font-size: 0.9rem;
+    }
+    
+    .export-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .export-btn {
+      flex: 1;
+      padding: 0.5rem;
+      background: rgba(0, 20, 0, 0.8);
+      border: 1px solid var(--hacker-green);
+      color: var(--hacker-green);
+      cursor: pointer;
+      text-align: center;
+    }
+    
+    .rrr-display {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      border: 1px solid var(--hacker-green);
+      text-align: center;
+      text-shadow: var(--glow);
+    }
+    
+    .negative {
+      color: var(--danger-red);
+      text-shadow: 0 0 10px var(--danger-red);
+    }
+    
+    .warning {
+      color: var(--warning-yellow);
+      text-shadow: 0 0 10px var(--warning-yellow);
+    }
+    
+    .toggle-section {
+      text-align: center;
+      margin-top: 1rem;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 0.9rem;
+    }
+    
+    .journal-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    
+    .scenario-header {
+      text-align: center;
+      margin-bottom: 1rem;
+      text-shadow: var(--glow);
+    }
+    
+    @media (max-width: 768px) {
+      .terminal {
+        padding: 1rem;
+      }
+      
+      .pair-selector, .leverage-buttons {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .scenario-inputs {
+        grid-template-columns: 1fr;
+      }
+      
+      .journal-container {
+        max-height: 200px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .pair-selector {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .leverage-buttons {
+        flex-wrap: wrap;
+      }
+      
+      .leverage-btn {
+        flex: 1 0 45%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="credit">
+    <div class="credit-text">made with ♥ by john</div>
+  </div>
+  <div class="credit">
+    <div class="credit-text">  </div>
+  </div>
+  <div class="terminal">
+    <h1 style="text-align: center; text-shadow: var(--glow)">kasir futures</h1>
+    
+    <div class="pair-selector">
+      <div class="pair-option active" data-pair="BTC/USDT">₿ BTC/USDT</div>
+      <div class="pair-option" data-pair="ETH/USDT">⧫ ETH/USDT</div>
+      <div class="pair-option" data-pair="SOL/USDT">◎ SOL/USDT</div>
+      <div class="pair-option" data-pair="custom">CUSTOM</div>
+    </div>
+
+    <div class="custom-pair-container" id="custom-pair-container">
+      <div class="input-group">
+        <label>▷ CUSTOM PAIR</label>
+        <input type="text" id="customPair" placeholder="Enter pair (e.g. XRP/USDT)" />
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>▷ ENTRY PRICE</label>
+      <input type="number" id="entryPrice" step="any" placeholder="0.00" />
+    </div>
+
+    <div class="input-group">
+      <label>▷ EXIT PRICE</label>
+      <input type="number" id="exitPrice" step="any" placeholder="0.00" />
+    </div>
+    
+    <div class="input-group">
+      <label>▷ STOP LOSS (SL)</label>
+      <input type="number" id="stopLoss" step="any" placeholder="0.00" />
+    </div>
+
+    <div class="input-group">
+      <label>▷ LEVERAGE</label>
+      <div class="leverage-buttons">
+        <div class="leverage-btn" data-leverage="10">10x</div>
+        <div class="leverage-btn" data-leverage="25">25x</div>
+        <div class="leverage-btn" data-leverage="50">50x</div>
+        <div class="leverage-btn" data-leverage="100">100x</div>
+      </div>
+      <input type="number" id="leverage" step="1" placeholder="Custom Leverage" />
+    </div>
+
+    <div class="input-group">
+      <label>▷ POSITION SIZE (USD)</label>
+      <input type="number" id="modal" step="any" placeholder="0.00" />
+    </div>
+
+    <div class="input-group">
+      <label>▷ TRADE DIRECTION</label>
+      <div class="leverage-buttons">
+        <div class="leverage-btn active" data-direction="long">LONG 🚀</div>
+        <div class="leverage-btn" data-direction="short">SHORT 🏹</div>
+      </div>
+    </div>
+    
+    <div class="rrr-display" id="rrrDisplay">
+      RISK/REWARD: -- 
+    </div>
+
+    <button onclick="calculateProfit()">CALCULATE PROFIT ⚡</button>
+
+    <div class="result-terminal" id="result">
+      > Awaiting command...
+    </div>
+    
+    <div class="toggle-section" onclick="toggleSection('multi-scenario')">
+      ▼ MULTI-SCENARIO SIMULATION
+    </div>
+    
+    <div class="multi-scenario" id="multi-scenario">
+      <div class="scenario-header">MULTI-TAKE PROFIT SETUP</div>
+      
+      <div class="scenario-inputs">
+        <div>
+          <label>TP1 PRICE</label>
+          <input type="number" id="tp1" step="any" placeholder="0.00" />
+        </div>
+        <div>
+          <label>TP1 %</label>
+          <input type="number" id="tp1Percent" step="any" placeholder="33" value="33" />
+        </div>
+        <div>
+          <label>TP1 SIZE</label>
+          <input type="number" id="tp1Size" step="any" placeholder="0.00" disabled />
+        </div>
+      </div>
+      
+      <div class="scenario-inputs">
+        <div>
+          <label>TP2 PRICE</label>
+          <input type="number" id="tp2" step="any" placeholder="0.00" />
+        </div>
+        <div>
+          <label>TP2 %</label>
+          <input type="number" id="tp2Percent" step="any" placeholder="33" value="33" />
+        </div>
+        <div>
+          <label>TP2 SIZE</label>
+          <input type="number" id="tp2Size" step="any" placeholder="0.00" disabled />
+        </div>
+      </div>
+      
+      <div class="scenario-inputs">
+        <div>
+          <label>TP3 PRICE</label>
+          <input type="number" id="tp3" step="any" placeholder="0.00" />
+        </div>
+        <div>
+          <label>TP3 %</label>
+          <input type="number" id="tp3Percent" step="any" placeholder="34" value="34" />
+        </div>
+        <div>
+          <label>TP3 SIZE</label>
+          <input type="number" id="tp3Size" step="any" placeholder="0.00" disabled />
+        </div>
+      </div>
+      
+      <button onclick="calculateMultiScenario()">CALCULATE MULTI-SCENARIO</button>
+      <div class="result-terminal" id="multiResult">
+        > Multi-scenario analysis ready
+      </div>
+    </div>
+    
+    <div class="toggle-section" onclick="toggleSection('journal-section')">
+      ▼ TRADE JOURNAL
+    </div>
+    
+    <div class="multi-scenario" id="journal-section">
+      <div class="journal-header">
+        <div>TRADE HISTORY</div>
+        <div id="journalCount">0 trades</div>
+      </div>
+      
+      <div class="journal-container" id="journalContainer">
+        <!-- Journal entries will appear here -->
+      </div>
+      
+      <div class="export-buttons">
+        <div class="export-btn" onclick="exportToCSV()">EXPORT CSV</div>
+        <div class="export-btn" onclick="saveToNotion()">SAVE TO NOTION</div>
+        <div class="export-btn" onclick="clearJournal()">CLEAR</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize from localStorage
+    function loadSession() {
+      const savedData = localStorage.getItem('futuresCalculatorData');
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        
+        // Restore input values
+        for (const [key, value] of Object.entries(data)) {
+          const element = document.getElementById(key);
+          if (element) element.value = value;
+        }
+        
+        // Restore active states
+        document.querySelectorAll('.pair-option').forEach(option => {
+          if (option.dataset.pair === data.selectedPair) {
+            option.classList.add('active');
+          } else {
+            option.classList.remove('active');
+          }
+        });
+        
+        // Toggle custom pair input
+        const customContainer = document.getElementById('custom-pair-container');
+        if (data.selectedPair === 'custom') {
+          customContainer.classList.add('active');
+        } else {
+          customContainer.classList.remove('active');
+        }
+        
+        // Restore leverage buttons
+        document.querySelectorAll('.leverage-buttons .leverage-btn').forEach(btn => {
+          if (btn.dataset.leverage === data.leverage) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+        
+        // Restore direction buttons
+        document.querySelectorAll('[data-direction]').forEach(btn => {
+          if (btn.dataset.direction === data.direction) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+        
+        // Load journal
+        const journal = JSON.parse(localStorage.getItem('tradeJournal') || '[]');
+        renderJournal(journal);
+      }
+    }
+    
+    // Save session to localStorage
+    function saveSession() {
+      const data = {
+        entryPrice: document.getElementById('entryPrice').value,
+        exitPrice: document.getElementById('exitPrice').value,
+        stopLoss: document.getElementById('stopLoss').value,
+        leverage: document.getElementById('leverage').value,
+        modal: document.getElementById('modal').value,
+        tp1: document.getElementById('tp1').value,
+        tp2: document.getElementById('tp2').value,
+        tp3: document.getElementById('tp3').value,
+        tp1Percent: document.getElementById('tp1Percent').value,
+        tp2Percent: document.getElementById('tp2Percent').value,
+        tp3Percent: document.getElementById('tp3Percent').value,
+        selectedPair: document.querySelector('.pair-option.active').dataset.pair,
+        direction: document.querySelector('[data-direction].active').dataset.direction
+      };
+      
+      localStorage.setItem('futuresCalculatorData', JSON.stringify(data));
+    }
+    
+    // Calculate Risk-Reward Ratio
+    function calculateRRR() {
+      const entry = parseFloat(document.getElementById('entryPrice').value);
+      const exit = parseFloat(document.getElementById('exitPrice').value);
+      const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+      const direction = document.querySelector('[data-direction].active').dataset.direction;
+      
+      if (isNaN(entry) || isNaN(exit) || isNaN(stopLoss)) return;
+      
+      const risk = Math.abs(entry - stopLoss);
+      const reward = Math.abs(entry - exit);
+      
+      let rrr = 0;
+      let rrrText = '--';
+      
+      if (risk > 0) {
+        rrr = reward / risk;
+        rrrText = `${rrr.toFixed(2)}:1`;
+      }
+      
+      const rrrDisplay = document.getElementById('rrrDisplay');
+      rrrDisplay.textContent = `RISK/REWARD: ${rrrText}`;
+      
+      if (rrr > 2) {
+        rrrDisplay.className = 'rrr-display';
+      } else if (rrr > 1) {
+        rrrDisplay.className = 'rrr-display warning';
+      } else if (rrr > 0) {
+        rrrDisplay.className = 'rrr-display negative';
+      }
+    }
+    
+    // Main profit calculation
+    function calculateProfit() {
+      // Get selected pair
+      const activePairOption = document.querySelector('.pair-option.active');
+      let pair;
+      
+      if (activePairOption.dataset.pair === 'custom') {
+        pair = document.getElementById('customPair').value.trim() || 'CUSTOM';
+      } else {
+        pair = activePairOption.dataset.pair;
+      }
+
+      const entry = parseFloat(document.getElementById('entryPrice').value);
+      const exit = parseFloat(document.getElementById('exitPrice').value);
+      const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+      const leverage = parseFloat(document.getElementById('leverage').value);
+      const modal = parseFloat(document.getElementById('modal').value);
+      const direction = document.querySelector('[data-direction].active').dataset.direction;
+
+      if ([entry, exit, leverage, modal].some(isNaN)) {
+        showResult('⚠️ ERROR: Invalid input parameters!');
+        return;
+      }
+
+      const priceChange = (exit - entry) / entry * (direction === 'long' ? 1 : -1);
+      const leveragedChange = priceChange * leverage;
+      const profit = leveragedChange * modal;
+      const roe = leveragedChange * 100;
+      
+      // Calculate liquidation price (simplified)
+      const liquidationPrice = entry * (1 - (1/leverage) * (direction === 'long' ? 0.9 : 1.1));
+      
+      // Calculate loss at stop loss
+      let lossAtSL = 0;
+      if (!isNaN(stopLoss)) {
+        const lossChange = (stopLoss - entry) / entry * (direction === 'long' ? -1 : 1);
+        lossAtSL = lossChange * leverage * modal;
+      }
+      
+      // Calculate RRR
+      let rrr = 0;
+      if (!isNaN(stopLoss)) {
+        const risk = Math.abs(entry - stopLoss);
+        const reward = Math.abs(entry - exit);
+        if (risk > 0) rrr = reward / risk;
+      }
+
+      const resultText = `
+        [+] TRADING PAIR: ${pair}
+        [+] PRICE MOVEMENT: ${(priceChange * 100).toFixed(2)}%
+        [+] LEVERAGE: ${leverage}x → PNL: ${roe.toFixed(2)}%
+        [+] PROFIT/LOSS: $${profit.toFixed(2)}
+        ${!isNaN(stopLoss) ? `[!] LOSS AT SL: $${lossAtSL.toFixed(2)}` : ''}
+        ${!isNaN(stopLoss) ? `[+] RISK-REWARD: ${rrr.toFixed(2)}:1` : ''}
+        [!] LIQUIDATION PRICE: $${liquidationPrice.toFixed(2)}
+        ${profit >= 0 ? '🚀 JEPE BOSSS' : '⚠️ YAHAHA RUNGKADDD'}
+      `;
+
+      showResult(resultText);
+      
+      // Save to journal
+      saveToJournal({
+        pair,
+        entry,
+        exit,
+        stopLoss,
+        leverage,
+        modal,
+        direction,
+        profit
+      });
+      
+      // Save session
+      saveSession();
+    }
+    
+    // Multi-scenario calculation
+    function calculateMultiScenario() {
+      const entry = parseFloat(document.getElementById('entryPrice').value);
+      const leverage = parseFloat(document.getElementById('leverage').value);
+      const modal = parseFloat(document.getElementById('modal').value);
+      const direction = document.querySelector('[data-direction].active').dataset.direction;
+      
+      const tp1 = parseFloat(document.getElementById('tp1').value);
+      const tp2 = parseFloat(document.getElementById('tp2').value);
+      const tp3 = parseFloat(document.getElementById('tp3').value);
+      const tp1Percent = parseFloat(document.getElementById('tp1Percent').value) / 100;
+      const tp2Percent = parseFloat(document.getElementById('tp2Percent').value) / 100;
+      const tp3Percent = parseFloat(document.getElementById('tp3Percent').value) / 100;
+      
+      // Validate inputs
+      if ([entry, leverage, modal].some(isNaN)) {
+        showMultiResult('⚠️ ERROR: Complete main parameters first');
+        return;
+      }
+      
+      // Calculate TP sizes
+      const tp1Size = modal * tp1Percent;
+      const tp2Size = modal * tp2Percent;
+      const tp3Size = modal * tp3Percent;
+      
+      document.getElementById('tp1Size').value = tp1Size.toFixed(2);
+      document.getElementById('tp2Size').value = tp2Size.toFixed(2);
+      document.getElementById('tp3Size').value = tp3Size.toFixed(2);
+      
+      // Calculate profits for each TP
+      let profit1 = 0, profit2 = 0, profit3 = 0;
+      let tp1Info = 'TP1: Not set';
+      let tp2Info = 'TP2: Not set';
+      let tp3Info = 'TP3: Not set';
+      
+      if (!isNaN(tp1)) {
+        profit1 = calculateTPProfit(entry, tp1, leverage, tp1Size, direction);
+        tp1Info = `TP1: $${profit1.toFixed(2)}`;
+      }
+      
+      if (!isNaN(tp2)) {
+        profit2 = calculateTPProfit(entry, tp2, leverage, tp2Size, direction);
+        tp2Info = `TP2: $${profit2.toFixed(2)}`;
+      }
+      
+      if (!isNaN(tp3)) {
+        profit3 = calculateTPProfit(entry, tp3, leverage, tp3Size, direction);
+        tp3Info = `TP3: $${profit3.toFixed(2)}`;
+      }
+      
+      const totalProfit = profit1 + profit2 + profit3;
+      const totalPercent = ((totalProfit / modal) * 100).toFixed(2);
+      
+      const resultText = `
+        [+] SCENARIO ANALYSIS:
+        ${tp1Info} | ${tp2Info} | ${tp3Info}
+        [+] TOTAL PROFIT: $${totalProfit.toFixed(2)} (${totalPercent}%)
+        [!] POSITION SIZE: $${modal.toFixed(2)}
+      `;
+      
+      showMultiResult(resultText);
+      
+      // Save session
+      saveSession();
+    }
+    
+    function calculateTPProfit(entry, exit, leverage, size, direction) {
+      const priceChange = (exit - entry) / entry * (direction === 'long' ? 1 : -1);
+      return priceChange * leverage * size;
+    }
+    
+    // Journal functions
+    function saveToJournal(tradeData) {
+      const journal = JSON.parse(localStorage.getItem('tradeJournal') || '[]');
+      
+      // Add timestamp and formatted data
+      const journalEntry = {
+        timestamp: new Date().toISOString(),
+        date: new Date().toLocaleString(),
+        pair: tradeData.pair,
+        entry: tradeData.entry,
+        exit: tradeData.exit,
+        stopLoss: tradeData.stopLoss || 'N/A',
+        leverage: tradeData.leverage,
+        size: tradeData.modal,
+        direction: tradeData.direction,
+        profit: tradeData.profit
+      };
+      
+      journal.unshift(journalEntry);
+      if (journal.length > 50) journal.pop(); // Keep only last 50 entries
+      
+      localStorage.setItem('tradeJournal', JSON.stringify(journal));
+      renderJournal(journal);
+    }
+    
+    function renderJournal(journal) {
+      const container = document.getElementById('journalContainer');
+      container.innerHTML = '';
+      
+      if (journal.length === 0) {
+        container.innerHTML = '<div class="journal-entry">No trades recorded yet</div>';
+        document.getElementById('journalCount').textContent = '0 trades';
+        return;
+      }
+      
+      document.getElementById('journalCount').textContent = `${journal.length} trades`;
+      
+      journal.forEach((entry, index) => {
+        const entryEl = document.createElement('div');
+        entryEl.className = 'journal-entry';
+        entryEl.innerHTML = `
+          <strong>${entry.date}</strong>
+          <div>${entry.pair} | ${entry.leverage}x | ${entry.direction.toUpperCase()}</div>
+          <div>Entry: $${parseFloat(entry.entry).toFixed(2)} | Exit: $${parseFloat(entry.exit).toFixed(2)}</div>
+          <div>SL: ${isNaN(parseFloat(entry.stopLoss)) ? 'N/A' : '$'+parseFloat(entry.stopLoss).toFixed(2)}</div>
+          <div>Profit: <span class="${entry.profit >= 0 ? '' : 'negative'}">$${entry.profit.toFixed(2)}</span></div>
+        `;
+        container.appendChild(entryEl);
+      });
+    }
+    
+    function exportToCSV() {
+      const journal = JSON.parse(localStorage.getItem('tradeJournal') || '[]');
+      if (journal.length === 0) {
+        showResult('⚠️ JOURNAL EMPTY: No trades to export');
+        return;
+      }
+      
+      let csvContent = "Date,Pair,Direction,Entry,Exit,Stop Loss,Leverage,Size,Profit\n";
+      
+      journal.forEach(entry => {
+        csvContent += `"${entry.date}",${entry.pair},${entry.direction},${entry.entry},${entry.exit},${entry.stopLoss},${entry.leverage},${entry.size},${entry.profit}\n`;
+      });
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'trading_journal.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showResult('> Journal exported to CSV successfully');
+    }
+    
+    function saveToNotion() {
+      showResult('> Notion integration coming soon!');
+    }
+    
+    function clearJournal() {
+      if (confirm('Clear entire trading journal?')) {
+        localStorage.removeItem('tradeJournal');
+        renderJournal([]);
+        showResult('> Journal cleared successfully');
+      }
+    }
+    
+    // Toggle sections
+    function toggleSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      section.classList.toggle('active');
+    }
+    
+    // UI Interactions
+    document.querySelectorAll('.pair-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelectorAll('.pair-option').forEach(o => o.classList.remove('active'));
+        option.classList.add('active');
+        
+        // Toggle custom pair input visibility
+        const customContainer = document.getElementById('custom-pair-container');
+        if (option.dataset.pair === 'custom') {
+          customContainer.classList.add('active');
+        } else {
+          customContainer.classList.remove('active');
+        }
+        
+        saveSession();
+      });
+    });
+
+    document.querySelectorAll('.leverage-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(btn.parentElement.classList.contains('leverage-buttons')) {
+          btn.parentElement.querySelectorAll('.leverage-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          if(btn.dataset.leverage) {
+            document.getElementById('leverage').value = btn.dataset.leverage;
+          }
+          saveSession();
+        }
+      });
+    });
+    
+    document.querySelectorAll('[data-direction]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(btn.parentElement.classList.contains('leverage-buttons')) {
+          btn.parentElement.querySelectorAll('.leverage-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          saveSession();
+        }
+      });
+    });
+    
+    // Initialize
+    function initializeApp() {
+      loadSession();
+      
+      // Initialize leverage button selection
+      if (!document.querySelector('.leverage-btn.active')) {
+        document.querySelector('[data-leverage="10"]').classList.add('active');
+        document.getElementById('leverage').value = '10';
+      }
+      
+      // Set up RRR calculation
+      document.getElementById('stopLoss').addEventListener('input', calculateRRR);
+      document.getElementById('exitPrice').addEventListener('input', calculateRRR);
+      document.getElementById('entryPrice').addEventListener('input', calculateRRR);
+      
+      // Auto-save on input
+      const inputs = [
+        'entryPrice', 'exitPrice', 'stopLoss', 'leverage', 'modal',
+        'tp1', 'tp2', 'tp3', 'tp1Percent', 'tp2Percent', 'tp3Percent'
+      ];
+      
+      inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', saveSession);
+      });
+      
+      // Initial RRR calculation
+      setTimeout(calculateRRR, 500);
+    }
+    
+    // Display functions
+    function showResult(text) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = text.split('\n').map(line => `> ${line}`).join('<br>');
+    }
+    
+    function showMultiResult(text) {
+      const resultDiv = document.getElementById('multiResult');
+      resultDiv.innerHTML = text.split('\n').map(line => `> ${line}`).join('<br>');
+    }
+    
+    // Initialize on load
+    window.addEventListener('load', initializeApp);
+  </script>
+</body>
+</html>
